@@ -659,7 +659,7 @@ function getImageUrl(imageId) { const e = imgCache.get(imageId); if (!e) return 
 function exportEncryptedQuestions() { if (!state.questions.length) { alert("暂无题库"); return; } const pwd = prompt("请输入加密密码："); if (!pwd) return; try { const data = state.questions.map(q => { let nq = {...q}; let opts = {}; for (let k in q.选项) { let v = q.选项[k]; if (v && typeof v === 'object' && v.type === 'image') opts[k] = {type:'image', src: v.src || ''}; else opts[k] = v || ''; } nq.选项 = opts; return nq; }); const enc = CryptoJS.AES.encrypt(JSON.stringify(data), pwd).toString(); const blob = new Blob([enc], {type:"application/octet-stream"}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `加密题库_${getLocalDateTimeString()}.enc`;a.click(); URL.revokeObjectURL(url); showToast("加密题库已导出"); } catch(e) { alert("加密失败："+e.message); } }
 function importEncryptedQuestions(file) { if (!file) return; const pwd = prompt("请输入加密密码："); if (!pwd) return; const reader = new FileReader(); reader.onload = e => { try { const dec = CryptoJS.AES.decrypt(e.target.result, pwd).toString(CryptoJS.enc.Utf8); if (!dec) throw new Error("密码错误"); const arr = JSON.parse(dec); state.questions = arr.map(q => { let nq = {...q}; let opts = {}; for (let k in q.选项) { let v = q.选项[k]; if (v && typeof v === 'object' && v.type === 'image' && v.src && /^data:image/.test(v.src)) { const id = addImageToCache(v.src); opts[k] = {type:'image', imageId: id, src: v.src}; } else if (typeof v === 'string' && /^data:image/.test(v)) { const id = addImageToCache(v); opts[k] = {type:'image', imageId: id, src: v}; } else opts[k] = v; } nq.选项 = opts; return nq; }); state.questionStatus = {}; state.activeFilter = 'all'; state.testMode = false; state.reviewMode = false; collections.clear(); saveCollectionsToStorage(); initCategories(); updateTypeFilter(); filterQuestions(); updateUI(); updateLibraryMenuHighlight(); updateCollectButtonStyle(); alert(`成功导入加密题库，共 ${arr.length} 题`); } catch(err) { alert("导入失败："+err.message); } }; reader.onerror = () => alert("读取文件失败"); reader.readAsText(file); }
 
-  
+
 function importFromURL() {
     const url = prompt("请输入 .xlsx 文件的完整 URL 地址：\n（例如：https://example.com/questions.xlsx）");
     if (!url) return;
@@ -667,36 +667,67 @@ function importFromURL() {
     const showToast = (msg) => { toast.textContent = msg; toast.style.display = 'block'; };
     const hideToast = () => { toast.style.display = 'none'; };
     showToast("⏳ 正在下载，请稍候...");
+
+    // 公共 CORS 代理列表
     const proxies = [
         { name: '直接连接', url: url },
         { name: '代理1', url: 'https://corsproxy.io/?' + encodeURIComponent(url) },
         { name: '代理2', url: 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url) }
     ];
+
     let proxyIndex = 0;
+
+    // 显示下载提示弹窗
+    const showDownloadDialog = (targetUrl) => {
+        hideToast();
+        const dialog = document.createElement('div');
+        dialog.innerHTML = `
+            <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;">
+                <div style="background:white;padding:20px;border-radius:12px;max-width:400px;text-align:center;">
+                    <p style="font-size:16px;margin-bottom:16px;">⚠️ 无法直接获取文件</p>
+                    <p style="font-size:14px;color:#666;margin-bottom:20px;">该链接可能禁止网页自动下载。<br>请手动下载后，使用<strong>“📂 导入本地题库”</strong>导入。</p>
+                    <a href="${targetUrl}" target="_blank" style="display:inline-block;background:#2563eb;color:white;padding:8px 20px;border-radius:8px;text-decoration:none;margin-right:10px;">打开下载链接</a>
+                    <button style="background:#e5e7eb;padding:8px 20px;border-radius:8px;border:none;cursor:pointer;" onclick="this.closest('[style*=\\'position:fixed\\']').remove()">关闭</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(dialog);
+    };
+
+    // 校验响应内容是否为有效的 Excel 文件
+    const isValidExcelResponse = (response) => {
+        const contentType = response.headers.get('content-type');
+        if (!contentType) return true; // 无 content-type 时不拦截，交给 XLSX 库判断
+        // 如果明确是 HTML，直接判定无效
+        if (contentType.includes('text/html')) return false;
+        // 如果是常见的 Excel MIME 类型，视为有效
+        if (contentType.includes('spreadsheetml') || contentType.includes('ms-excel') || contentType.includes('octet-stream')) return true;
+        // 其他类型（如 text/plain）也放行，交给 XLSX 库尝试解析
+        return true;
+    };
+
     const tryFetch = () => {
         if (proxyIndex >= proxies.length) {
-            hideToast();
-            const dialog = document.createElement('div');
-            dialog.innerHTML = `<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;"><div style="background:white;padding:20px;border-radius:12px;max-width:400px;text-align:center;"><p style="font-size:16px;margin-bottom:16px;">⚠️ 无法直接获取文件</p><p style="font-size:14px;color:#666;margin-bottom:20px;">该链接可能禁止网页自动下载。<br>请手动下载后，使用<strong>“📂 导入本地题库”</strong>导入。</p><a href="${url}" target="_blank" style="display:inline-block;background:#2563eb;color:white;padding:8px 20px;border-radius:8px;text-decoration:none;margin-right:10px;">打开下载链接</a><button style="background:#e5e7eb;padding:8px 20px;border-radius:8px;border:none;cursor:pointer;" onclick="this.closest('[style*=\\'position:fixed\\']').remove()">关闭</button></div></div>`;
-            document.body.appendChild(dialog);
+            showDownloadDialog(url);
             return;
         }
+
         const current = proxies[proxyIndex];
         showToast(proxyIndex === 0 ? "⏳ 正在下载..." : `⏳ 尝试${current.name}下载...`);
+
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);
         fetch(current.url, { signal: controller.signal })
             .then(response => {
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                // 检查内容类型，如果明确是 HTML 则直接走下载提示
+                if (!isValidExcelResponse(response)) {
+                    throw new Error('INVALID_CONTENT_TYPE');
+                }
                 return response.arrayBuffer();
             })
             .then(arrayBuffer => {
                 clearTimeout(timeoutId);
-                // 校验是否为有效的 Excel 文件（ZIP 文件头：PK\x03\x04）
-                const bytes = new Uint8Array(arrayBuffer);
-                if (bytes.length < 4 || bytes[0] !== 0x50 || bytes[1] !== 0x4B || bytes[2] !== 0x03 || bytes[3] !== 0x04) {
-                    throw new Error('NOT_EXCEL');
-                }
                 showToast("✅ 下载完成，正在解析...");
                 const blob = new Blob([arrayBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
                 handleFile(new File([blob], "remote.xlsx", { type: blob.type }));
@@ -704,18 +735,21 @@ function importFromURL() {
             })
             .catch(err => {
                 clearTimeout(timeoutId);
-                if (err.message === 'NOT_EXCEL') {
-                    proxyIndex++;
-                    tryFetch();
-                } else {
-                    proxyIndex++;
-                    tryFetch();
+                // 如果是因为内容类型不对而失败，直接弹出下载提示
+                if (err.message === 'INVALID_CONTENT_TYPE') {
+                    showDownloadDialog(current.url);
+                    return;
                 }
+                // 其他错误继续尝试下一个代理
+                proxyIndex++;
+                tryFetch();
             });
     };
+
     tryFetch();
 }
 
+  
   
 function arrayBufferToBase64(buffer) { let binary = ''; const bytes = new Uint8Array(buffer); for (let i=0; i<bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]); return btoa(binary); }
 function extractImagesFromSheet(sheet) { const imageMap = {}; if (!sheet['!images']) return imageMap; sheet['!images'].forEach(img => { try { let cellRef = null; if (img.position) cellRef = XLSX.utils.encode_cell({ r: img.position.r, c: img.position.c }); else if (img.l && img.l.Target) cellRef = img.l.Target; else if (img['!pos']) cellRef = XLSX.utils.encode_cell({ r: img['!pos'].r, c: img['!pos'].c }); if (cellRef) { let imageData = img.image || img.data || img.base64; if (!imageData) return; let b64 = imageData instanceof Uint8Array ? arrayBufferToBase64(imageData) : (typeof imageData === 'string' ? imageData.split(',')[1] : null); if (b64) imageMap[cellRef] = 'data:image/png;base64,' + b64; } } catch(e) {} }); return imageMap; }
