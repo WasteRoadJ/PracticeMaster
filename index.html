@@ -522,19 +522,33 @@ E. 数组（array）
 </div>
 </div>
 </div>
-<div id="help-modal"><div class="help-modal-content"><div class="help-modal-header"><h2>📖 使用说明</h2><span class="help-close" onclick="closeHelpModal()">&times;</span></div><div class="steps">
+<div id="help-modal"><div class="help-modal-content"><div class="help-modal-header"><h2>📖 使用说明 v6.17.18</h2><span class="help-close" onclick="closeHelpModal()">&times;</span></div><div class="steps">
 <h3 class="font-bold mb-2">快速上手</h3>
 <ul class="list-disc pl-5 space-y-2">
-<li><strong>📥 导入题库</strong>：左侧菜单 📥→📂 导入本地题库，支持 .xlsx、.enc 或 URL。表格应含“题目内容、答案、题目类型”，选项列为“选项1～8”或数字/字母。</li>
-<li><strong>✏️ 刷题模式</strong>：勾选/填写答案后提交，自动判对错并记录错题。答错时正确答案闪烁（可在设置中调整闪烁秒数，0=常亮）。</li>
-<li><strong>📖 背题模式</strong>：直接显示正确答案与解析，适合快速记忆。</li>
-<li><strong>🎲 顺序/随机</strong>：点击题目区右上角“顺序”按钮可切换随机模式，随机打乱题目顺序。</li>
-<li><strong>🔥 错题强化</strong>：在错题库中开启（设置→错题强化学习次数），需连续答对指定次数才能移出错题，答错即显示解析。</li>
-<li><strong>📝 模拟测试</strong>：其他→模拟测试，可自定义各题型数量、分值和限时，随机抽题，结束后显示得分与错题回顾。</li>
-<li><strong>🔍 全文搜索</strong>：右侧导航上方输入框可按题号或题目内容模糊搜索。</li>
-<li><strong>⭐ 收藏</strong>：点击“收藏”标记题目，收藏题目在导航栏显示金色边框，可导出收藏本。</li>
-<li><strong>🤖 AI解析</strong>：点击“AI解析”调用在线接口，在设置中可更换 API 地址。</li>
-<li><strong>📤 导出</strong>：支持导出完整题库（含进度、答题状态）、加密题库、错题本、收藏本及打印版。</li>
+<li><strong>📥 导入题库</strong>：左侧菜单  pan>
+<button class="toggle-prompt-btn text-xs underline" data-target="prompt-box-excel-deepseek">显示</button>
+</div>
+<button class="copy-btn text-xs py-1 px-3" data-prompt="prompt-excel2word-deepseek">📋 复制</button>
+</div>
+<div class="prompt-box bg-gray-50 p-3 rounded" id="prompt-box-excel-deepseek" style="display:none;">
+<pre class="text-sm whitespace-pre-wrap" id="prompt-excel2word-deepseek">【任务指令 - 必须严格遵守】
+你是一名题库排版工具。你的唯一任务是：直接将上传Excel数据中所有题目，逐题转换为Word文档格式文本。
+
+【绝对禁止以下行为】
+- 禁止输出任务完成说明、格式合规报告、文件交付列表、内容预览等任何解释性或总结性文字
+- 禁止生成下载链接或提示用户下载文件
+- 禁止输出表格（如“| 文件名称 | 用途 |”这种）
+- 禁止使用“# ”“## ”等Markdown标题（直接用文字标题）
+- 禁止在开头或结尾添加任何非题目内容
+
+【输出格式示例（严格参照）】
+一、单选题
+1. 计算机中存储数据的最小单位是？（）
+A. 字节
+B. 位
+C. KB
+D. MB
+*
 <li><strong>🔁 题库转化</strong>：其他→题库转化，支持 Word/文本→Excel 和 Excel→Word/文本 双向转化，内置提示词可直接复制到 DeepSeek、豆包等 AI 使用。<strong>⚠️ AI 转化结果需人工校对，不能保证百分百正确。</strong></li>
 <li><strong>⚡ 快捷键</strong>：数字键1-8选择选项，Enter提交，↑/↓切换题目，数字9随机跳转（输入框内无效）。</li>
 </ul>
