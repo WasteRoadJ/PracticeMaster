@@ -675,20 +675,45 @@ function importFromURL() {
     ];
     let proxyIndex = 0;
 
-    // 显示下载提示弹窗
+    // 显示下载提示弹窗（使用安全的 DOM 操作避免转义错误）
     const showDownloadDialog = (targetUrl) => {
         hideToast();
-        const dialog = document.createElement('div');
-        dialog.innerHTML = [
-            '<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;">',
-            '<div style="background:white;padding:20px;border-radius:12px;max-width:400px;text-align:center;">',
-            '<p style="font-size:16px;margin-bottom:16px;">⚠️ 无法直接获取文件</p>',
-            '<p style="font-size:14px;color:#666;margin-bottom:20px;">该链接可能禁止网页自动下载。<br>请手动下载后，使用<strong>“📂 导入本地题库”</strong>导入。</p>',
-            `<a href="${targetUrl}" target="_blank" style="display:inline-block;background:#2563eb;color:white;padding:8px 20px;border-radius:8px;text-decoration:none;margin-right:10px;">打开下载链接</a>`,
-            '<button style="background:#e5e7eb;padding:8px 20px;border-radius:8px;border:none;cursor:pointer;" onclick="this.closest(\'[style*=\\'position:fixed\\']\').remove()">关闭</button>',
-            '</div></div>'
-        ].join('');
-        document.body.appendChild(dialog);
+        // 移除可能已存在的弹窗
+        const existing = document.getElementById('download-dialog-wrapper');
+        if (existing) existing.remove();
+
+        const wrapper = document.createElement('div');
+        wrapper.id = 'download-dialog-wrapper';
+        wrapper.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+
+        const inner = document.createElement('div');
+        inner.style.cssText = 'background:white;padding:20px;border-radius:12px;max-width:400px;text-align:center;';
+
+        const p1 = document.createElement('p');
+        p1.style.cssText = 'font-size:16px;margin-bottom:16px;';
+        p1.textContent = '⚠️ 无法直接获取文件';
+
+        const p2 = document.createElement('p');
+        p2.style.cssText = 'font-size:14px;color:#666;margin-bottom:20px;';
+        p2.innerHTML = '该链接可能禁止网页自动下载。<br>请手动下载后，使用<strong>“📂 导入本地题库”</strong>导入。';
+
+        const link = document.createElement('a');
+        link.href = targetUrl;
+        link.target = '_blank';
+        link.style.cssText = 'display:inline-block;background:#2563eb;color:white;padding:8px 20px;border-radius:8px;text-decoration:none;margin-right:10px;';
+        link.textContent = '打开下载链接';
+
+        const closeBtn = document.createElement('button');
+        closeBtn.style.cssText = 'background:#e5e7eb;padding:8px 20px;border-radius:8px;border:none;cursor:pointer;';
+        closeBtn.textContent = '关闭';
+        closeBtn.addEventListener('click', () => wrapper.remove());
+
+        inner.appendChild(p1);
+        inner.appendChild(p2);
+        inner.appendChild(link);
+        inner.appendChild(closeBtn);
+        wrapper.appendChild(inner);
+        document.body.appendChild(wrapper);
     };
 
     const tryFetch = () => {
