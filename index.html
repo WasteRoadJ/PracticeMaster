@@ -529,7 +529,7 @@ E. 数组（array）
 </div>
 </div>
 </div>
-<div id="help-modal"><div class="help-modal-content"><div class="help-modal-header"><h2>📖 使用说明 v6.17.18</h2><span class="help-close" onclick="closeHelpModal()">&times;</span></div><div class="steps">
+<div id="help-modal"><div class="help-modal-content"><div class="help-modal-header"><h2>📖 使用说明 v6.17.19</h2><span class="help-close" onclick="closeHelpModal()">&times;</span></div><div class="steps">
 <h3 class="font-bold mb-2">快速上手</h3>
 <ul class="list-disc pl-5 space-y-2">
 <li><strong>📥 导入题库</strong>：左侧菜单 📥→📂 导入本地题库，支持 .xlsx、.enc 或 URL。表格应含“题目内容、答案、题目类型”，选项列为“选项1～8”或数字/字母。</li>
@@ -565,6 +565,7 @@ E. 数组（array）
 <div class="test-score" id="test-total-score-preview">总分：0</div>
 </div><div class="flex justify-end gap-3"><button onclick="closeTestModal()" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg">取消</button><button onclick="startTest()" class="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-lg">开始测试</button></div></div></div>
 <div id="settings-modal"><div class="settings-modal-content"><div class="settings-modal-header"><h2>⚙️ 设置</h2><span class="settings-close" onclick="closeSettingsModal()">&times;</span></div><div style="padding:10px 0;">
+<div class="settings-row"><span>AI解析同时复制题干和选项</span><label class="toggle-switch"><input type="checkbox" id="ai-copy-switch"><span class="slider"></span></label></div>
 <div class="settings-row"><span>选中答案后自动提交（单选/判断）</span><label class="toggle-switch"><input type="checkbox" id="auto-submit-setting" checked><span class="slider"></span></label></div>
 <div class="settings-row"><span>滑动切换题目（移动端）</span><label class="toggle-switch"><input type="checkbox" id="touch-swipe-setting" checked><span class="slider"></span></label></div>
 <div class="settings-row"><span>正确答案闪烁</span><label class="toggle-switch"><input type="checkbox" id="blink-switch-setting" checked><span class="slider"></span></label></div>
@@ -591,7 +592,7 @@ testMode: false, reviewMode: false, filteredQuestions: [], categories: new Set()
 blinkHighlight: true, blinkDuration: 1.5,
 reinforceCount: 2, wrongReinforce: {},
 testQuestions: [], testScores: {}, testQuestionStatus: {},
-autoSubmitOnSelect: true, maxWidth: 1000, fontSize: 16, theme: 'auto',
+autoSubmitOnSelect: true, maxWidth: 1000, fontSize: 16, theme: 'auto',aiCopyOnAnalyze: false,
 testTimeLimit: 0, testRemainingSeconds: 0, testTimerInterval: null, touchSwipeEnabled: true,
 searchTerm: '', randomMode: false
 };
@@ -1159,6 +1160,7 @@ document.getElementById('max-width-value').textContent = state.maxWidth + 'px';
 document.getElementById('theme-select').value = state.theme;
 document.getElementById('font-size-slider').value = state.fontSize;
 document.getElementById('api-url-setting').value = localStorage.getItem('aiApiUrl') || 'https://text.pollinations.ai/{prompt}';
+document.getElementById('ai-copy-switch').checked = state.aiCopyOnAnalyze;
 }
 function closeSettingsModal() {
 state.blinkHighlight = document.getElementById('blink-switch-setting').checked;
@@ -1166,6 +1168,8 @@ let dur = parseFloat(document.getElementById('blink-duration-setting').value);
 state.blinkDuration = isNaN(dur) ? 1.5 : dur;
 state.autoSubmitOnSelect = document.getElementById('auto-submit-setting').checked;
 state.touchSwipeEnabled = document.getElementById('touch-swipe-setting').checked;
+state.aiCopyOnAnalyze = document.getElementById('ai-copy-switch').checked;
+localStorage.setItem('aiCopyOnAnalyze', state.aiCopyOnAnalyze);
 state.reinforceCount = parseInt(document.getElementById('reinforce-count-setting').value) || 2;
 localStorage.setItem('reinforceCount', state.reinforceCount);
 localStorage.setItem('touchSwipeEnabled', state.touchSwipeEnabled);
@@ -1276,6 +1280,25 @@ document.getElementById('type-filter-side').onchange = () => filterQuestions();
 document.getElementById('ai-analyze-btn').onclick = async () => {
 const q = state.filteredQuestions[state.currentIndex];
 if (!q) { alert("当前没有题目"); return; }
+// 如果开启了“AI解析同时复制”，则提前复制题干和选项到剪贴板
+if (state.aiCopyOnAnalyze) {
+    let copyText = `题目：${q.题目内容}\n`;
+    if (q.题目类型 !== 'fill' && q.题目类型 !== 'essay' && Object.keys(q.选项).length) {
+        copyText += "选项：\n";
+        for (const [k, v] of Object.entries(q.选项)) {
+            if (v && typeof v === 'object' && v.type === 'image') {
+                copyText += `${k}. [图片选项]\n`;
+            } else {
+                copyText += `${k}. ${v}\n`;
+            }
+        }
+    }
+    if (q.题目类型 === 'fill') copyText += "（填空题）\n";
+    if (q.题目类型 === 'essay') copyText += "（简答题）\n";
+    navigator.clipboard.writeText(copyText.trim()).then(() => {
+        showToast("题干与选项已复制到剪贴板");
+    }).catch(() => {});
+}
 let prompt = `请解析以下题目，给出正确答案和详细解析，用中文回答。\n题目：${q.题目内容}\n`;
 if (q.题目类型 !== 'fill' && q.题目类型 !== 'essay' && Object.keys(q.选项).length) {
 prompt += "选项：\n";
@@ -1381,6 +1404,7 @@ const rc = parseInt(savedReinforceCount);
 if (!isNaN(rc) && rc >= 1) state.reinforceCount = rc;
 }
 state.touchSwipeEnabled = localStorage.getItem('touchSwipeEnabled') !== 'false';
+state.aiCopyOnAnalyze = localStorage.getItem('aiCopyOnAnalyze') === 'true';
 watchSystemTheme();
 bindEvents();
 initCategories();
