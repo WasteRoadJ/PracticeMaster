@@ -7,7 +7,7 @@
 | 部署平台 | 访问链接 |
 |---------|---------|
 | **GitHub Pages** | [https://WasteRoadJ.github.io/PracticeMaster/](https://WasteRoadJ.github.io/PracticeMaster/) |
-| **教具库** | [https://s.jiaojuku.com/p/nacegq](https://s.jiaojuku.com/p/nacegq) |
+| **教具库** | [[https://s.jiaojuku.com/p/nacegq](https://s.jiaojuku.com/p/nacegq](https://s.jiaojuku.com/p/99icfm?p=1111)) |
 
 > 💡 推荐使用 Chrome、Edge 等现代浏览器打开。
 
