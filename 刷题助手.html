@@ -1,5 +1,5 @@
 <!--
-    PracticeMaster（刷题助手）原作者信息：
+    PracticeMaster v6.18.3（刷题助手）原作者信息：
     原始项目：题库刷题 v5.0
     作者：52pojie论坛网友（已获授权二次开发）
     原始帖子：https://www.52pojie.cn/thread-2021709-1-1.html
@@ -530,7 +530,7 @@ E. 数组（array）
 </div>
 </div>
 </div>
-<div id="help-modal"><div class="help-modal-content"><div class="help-modal-header"><h2>📖 使用说明 v6.17.20</h2><span class="help-close" onclick="closeHelpModal()">&times;</span></div><div class="steps">
+<div id="help-modal"><div class="help-modal-content"><div class="help-modal-header"><h2>📖 使用说明 v6.18.3</h2><span class="help-close" onclick="closeHelpModal()">&times;</span></div><div class="steps">
 <h3 class="font-bold mb-2">快速上手</h3>
 <ul class="list-disc pl-5 space-y-2">
 <li><strong>📥 导入题库</strong>：左侧菜单 📥→📂 导入本地题库，支持 .xlsx、.enc 或 URL。表格应含“题目内容、答案、题目类型”，选项列为“选项1～8”或数字/字母。</li>
@@ -572,10 +572,33 @@ E. 数组（array）
 <div class="settings-row"><span>正确答案闪烁</span><label class="toggle-switch"><input type="checkbox" id="blink-switch-setting" checked><span class="slider"></span></label></div>
 <div class="settings-row"><span>正确答案闪烁秒数 (0=持续)</span><input type="number" id="blink-duration-setting" value="1.5" min="0" step="0.5"></div>
 <div class="settings-row"><span>错题强化学习次数</span><input type="number" id="reinforce-count-setting" value="2" min="1" step="1"></div>
-<div class="settings-row"><span>API地址(加{prompt})</span><input type="text" id="api-url-setting" class="border rounded-lg px-2 py-1 text-sm" style="width:200px;padding:6px 10px;" placeholder="https://text.pollinations.ai/{prompt}"></div>
+
 <div class="settings-row"><span>题目字体大小</span><div style="display:flex;align-items:center;gap:8px;margin-left:auto;"><input type="range" id="font-size-slider" min="14" max="24" step="1" value="16"><span id="font-size-value" class="width-value">16px</span></div></div>
 <div class="settings-row"><span>页面宽度（电脑端）</span><div style="display:flex;align-items:center;gap:8px;margin-left:auto;"><input type="range" id="max-width-slider" min="600" max="1400" step="10" value="1000"><span id="max-width-value" class="width-value">1000px</span></div></div>
 <div class="settings-row"><span>主题模式</span><select id="theme-select" class="border rounded-lg px-2 py-1 text-sm"><option value="auto">自动（跟随系统）</option><option value="light">浅色模式</option><option value="dark">深色模式</option></select></div>
+<div class="settings-row"><span>API地址</span><input type="text" id="api-url-setting" class="border rounded-lg px-2 py-1 text-sm" style="width:200px;padding:6px 10px;" placeholder="https://text.pollinations.ai/openai"></div>
+<div class="settings-row"><span>API接口类型</span>
+  <select id="api-type-setting" class="border rounded-lg px-2 py-1 text-sm">
+    <option value="get">GET(默认)</option>
+    <option value="openai">POST(OpenAI兼容)</option>
+  </select>
+</div>
+<div class="settings-row"><span>API Key (可选)</span>
+  <input type="password" id="api-key-setting" class="border rounded-lg px-2 py-1 text-sm" style="width:200px" placeholder="sk-...">
+</div>
+<div class="settings-row">
+  <span>API模型名称</span>
+  <div style="display:flex; gap:6px; align-items:center;">
+    <select id="model-name-setting" class="border rounded-lg px-2 py-1 text-sm" style="width:180px;">
+      <option value="deepseek-chat">deepseek-chat</option>
+      <option value="deepseek-reasoner">deepseek-reasoner</option>
+      <option value="moonshot-v1-8k">moonshot-v1-8k</option>
+      <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+      <option value="gpt-4o">gpt-4o</option>
+    </select>
+    <button id="refresh-models-btn" class="text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded">🔄 拉取模型</button>
+  </div>
+</div>
 <div class="flex justify-end mt-4"><button onclick="closeSettingsModal()" class="bg-blue-500 text-white px-4 py-2 rounded-lg">确定</button></div>
 </div></div></div>
 <div id="toast-msg" class="toast-msg">✅ 已复制到剪贴板</div>
@@ -1187,6 +1210,9 @@ document.getElementById('theme-select').value = state.theme;
 document.getElementById('font-size-slider').value = state.fontSize;
 document.getElementById('api-url-setting').value = localStorage.getItem('aiApiUrl') || 'https://text.pollinations.ai/{prompt}';
 document.getElementById('ai-copy-switch').checked = state.aiCopyOnAnalyze;
+document.getElementById('api-type-setting').value = localStorage.getItem('apiType') || 'get';
+document.getElementById('api-key-setting').value = localStorage.getItem('apiKey') || '';
+document.getElementById('model-name-setting').value = localStorage.getItem('modelName') || 'deepseek-chat';
 }
 function closeSettingsModal() {
 state.blinkHighlight = document.getElementById('blink-switch-setting').checked;
@@ -1209,6 +1235,10 @@ state.fontSize = parseInt(document.getElementById('font-size-slider').value);
 saveFontSizeToStorage(); applyFontSize();
 document.getElementById('settings-modal').style.display = 'none';
 setTimeout(() => bindAutoSubmitForOptions(), 0);
+localStorage.setItem('apiType', document.getElementById('api-type-setting').value);
+localStorage.setItem('apiKey', document.getElementById('api-key-setting').value.trim());
+const modelSelect = document.getElementById('model-name-setting');
+localStorage.setItem('modelName', modelSelect.value);
 }
 function showConvertModal() {
 document.getElementById('convert-modal').style.display = 'block';
@@ -1303,6 +1333,53 @@ document.getElementById('end-exam-btn').onclick = endExam;
 document.getElementById('search-input').oninput = searchQuestions;
 document.getElementById('category-filter-side').onchange = () => filterQuestions();
 document.getElementById('type-filter-side').onchange = () => filterQuestions();
+document.getElementById('refresh-models-btn').onclick = async () => {
+    const btn = document.getElementById('refresh-models-btn');
+    btn.textContent = '⏳ 拉取中...';
+    btn.disabled = true;
+
+    const baseUrl = document.getElementById('api-url-setting').value.replace(/\/+$/, '');
+    const apiKey = document.getElementById('api-key-setting').value.trim();
+    const apiType = document.getElementById('api-type-setting').value;
+
+    if (apiType !== 'openai') {
+        alert('仅 OpenAI 兼容接口支持拉取模型列表');
+        btn.textContent = '🔄 拉取模型';
+        btn.disabled = false;
+        return;
+    }
+
+    try {
+        const resp = await fetch(`${baseUrl}/models`, {
+            headers: {
+                'Authorization': `Bearer ${apiKey}`
+            }
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        const models = data.data ? data.data.map(m => m.id) : [];
+        if (!models.length) throw new Error('无模型数据');
+
+        const select = document.getElementById('model-name-setting');
+        select.innerHTML = '';
+        models.forEach(id => {
+            const opt = document.createElement('option');
+            opt.value = id;
+            opt.textContent = id;
+            select.appendChild(opt);
+        });
+        const savedModel = localStorage.getItem('modelName');
+        if (savedModel && models.includes(savedModel)) {
+            select.value = savedModel;
+        }
+        showToast('模型列表已更新');
+    } catch (err) {
+        alert('拉取失败：' + err.message);
+    } finally {
+        btn.textContent = '🔄 拉取模型';
+        btn.disabled = false;
+    }
+};
 document.getElementById('ai-analyze-btn').onclick = async () => {
 const q = state.filteredQuestions[state.currentIndex];
 if (!q) { alert("当前没有题目"); return; }
@@ -1340,11 +1417,46 @@ const contentDiv = document.getElementById('ai-popup-content');
 contentDiv.innerHTML = '<div class="ai-loading">🤖 AI 思考中...</div>';
 popup.style.display = 'flex';
 try {
-const apiUrlTemplate = localStorage.getItem('aiApiUrl') || 'https://text.pollinations.ai/{prompt}';
-const requestUrl = apiUrlTemplate.replace('{prompt}', encodeURIComponent(prompt));
-const resp = await fetch(requestUrl);
-if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-let aiText = await resp.text();
+
+// === 新代码（兼容 GET / OpenAI 风格 POST） ===
+const apiType = localStorage.getItem('apiType') || 'get';
+let baseUrl = (localStorage.getItem('aiApiUrl') || 'https://text.pollinations.ai/openai').replace(/\/+$/, '');
+if (baseUrl.includes('{prompt}')) {
+    baseUrl = baseUrl.replace('{prompt}', '').replace(/\/+$/, '');
+}
+const apiKey = localStorage.getItem('apiKey') || '';
+
+let response;
+if (apiType === 'openai') {
+	// 自动补全 /chat/completions 端点（兼容用户只填到 /v1）
+    if (!baseUrl.endsWith('/chat/completions')) {
+        baseUrl = baseUrl.replace(/\/+$/, '') + '/chat/completions';
+    }
+    // OpenAI 兼容风格：POST + JSON body
+    const messages = [{ role: 'user', content: prompt }];
+    response = await fetch(baseUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {})
+        },
+        body: JSON.stringify({
+            model: localStorage.getItem('modelName') || 'deepseek-chat',   // 可忽略，服务端自动选
+            messages: messages,
+            stream: false,
+            max_tokens: 1024
+        })
+    });
+} else {
+    // 默认 GET 方式（原有逻辑）
+    const requestUrl = `${baseUrl}/${encodeURIComponent(prompt)}`;
+    response = await fetch(requestUrl);
+}
+if (!response.ok) throw new Error(`HTTP ${response.status}`);
+let aiText = await response.text();
+// === 新代码结束 ===
+
+
 try {
 const jsonData = JSON.parse(aiText);
 if (jsonData.choices && jsonData.choices[0] && jsonData.choices[0].message && jsonData.choices[0].message.content) {
@@ -1367,6 +1479,12 @@ delete jsonData.role;
 aiText = JSON.stringify(jsonData, null, 2);
 }
 } catch (e) {}
+// ========== 新增：将解析内容填充到题库 ==========
+const currentQ = state.questions.find(item => item._id === q._id);
+if (currentQ) {
+    currentQ.解析 = aiText;            // 存储完整解析（未被截断）
+    showToast("解析已更新至题库");
+}
 if (aiText.length > 2000) {
 aiText = aiText.substring(0, 2000) + '...（内容已截断）';
 }
